@@ -43,81 +43,120 @@ define(function(require, exports, module) {
     });
 
     this.node = this.add(rootModifier);
+    var cards = ['fa-bug','fa-coffee','fa-car','fa-glass', 'fa-anchor']
+    _createGrid.call(this, cards);
 
-    _createGrid.call(this);
+    _createShuffleButton.call(this);
   }
 
 
   GridView.prototype = Object.create(View.prototype);
   GridView.prototype.constructor = GridView;
+  GridView.prototype.animateGrid = function(){
 
-  function _createGrid(){
+      var transition = this.options.transition;
+      var delay = 40;
+      var stripOffset = 70;
+      var topOffset = 50;
+      var yOffset = 0;
+      var xOffset = 0;
+      //reset modifiers
+      for (var i = 0; i < this.gridItemModifiers.length; i++) {
+        this.gridItemModifiers[i].setTransform(
+            Transform.translate(-50,-50 ,0)
+        )
+      }
 
+      _shuffle(this.gridItemModifiers);
+
+      for (var i = 0; i < this.gridItemModifiers.length; i++) {
+          Timer.setTimeout( function(i){
+              // console.log(i % this.options.rows);
+              if(i % this.options.rows == 0){
+                
+                yOffset += 70;
+                xOffset = 50;
+
+              } else if(i%this.options.rows == 1) {
+                 xOffset = 50 +70;
+              } else if(i%this.options.rows == 2){
+                xOffset = 50+70*2;
+              } else if(i%this.options.rows == 3){
+                xOffset = 50 + 70 *3;
+              } else {
+                xOffset = 50+70*4;
+              }
+              this.gridItemModifiers[i].setTransform(
+                  Transform.translate(xOffset, yOffset, 0), transition);
+              }.bind(this, i), i* delay);
+        }
+  };
+
+
+  function _createGrid(cards){
+    
     var index = 1;
 
     this.gridItemModifiers = [];
 
-    for (var i=0; i<this.options.columns*this.options.rows; i++){
+    for (var i=0; i<this.options.columns; i++){
 
-       // for (var j=0; j < this.options.rows; j++){
+       for (var j=0; j < this.options.rows; j++){
 
         var gridItemModifier = new Modifier({
-          transform: Transform.translate(0, 0 ,0)
+          transform: Transform.translate(-50,-50 ,0)
         });
 
         this.gridItemModifiers.push(gridItemModifier);
 
-        // gridItemModifier.setTransform(
-        //   Transform.translate(i*50, /*j*/50, 0),
-        //   transition
-        // );
+        var item = cards[Math.floor(Math.random()*cards.length)];
 
         var surface = new Surface({
           size: [50,50],
-          content: index,
+          // classes: [item],
+          content: '<i  class="fa '+item+'"></i>',
           properties: {
             backgroundColor: '#444',
             margin: 'auto',
             border: '1px solid white',
             color: 'white',
             textAlign: 'center',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            borderRadius: '3px',
+            paddingTop: '15px'
           }
         });
 
         this.node.add(gridItemModifier).add(surface);
         index ++;
-       // }
+       }
     }
   };
 
-  GridView.prototype.animateGrid = function(){
-      // var transition = this.options.transition;
-      // var delay = this.options.staggerDelay;
-      // var stripOffset = this.options.stripOffset;
-      // var topOffset = this.options.topOffset;
+  function _createShuffleButton(){
+    var button = new Surface({
+      align: [0.5, 0.5],
+      size: [10,10],
+      origin: [0,0],
+      content: '<button type="button" class="btn btn-success">Shuffle</button>',
+    });
+    var buttonMod = new Modifier({
+      transform: Transform.translate(50,10 ,0)
+    });
 
-      var transition = this.options.transition;
-      var delay = 40;
-      var stripOffset = 70;
-      var topOffset = 50;
+    button.on('click', function() {
 
-      for (var i = 0; i < this.gridItemModifiers.length; i++) {
-        if(i % this.options.rows > 1){
-          
-        }
-        // for(var j = 0; j < this.options.rows; j++){
-          Timer.setTimeout( function(i){
-              var xOffset = topOffset + stripOffset * i;
+      this.animateGrid();
+    }.bind(this));
 
-              this.gridItemModifiers[i].setTransform(
-                  Transform.translate(xOffset, 89, 0), transition);
-              }.bind(this, i), i* delay);
-          // } 
-        }
+    this.node.add(buttonMod).add(button);
+  }
 
+  function _shuffle(o){
+    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+    return o;
+  }
 
-  };
 
   module.exports = GridView;
 });
