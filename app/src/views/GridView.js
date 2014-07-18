@@ -28,17 +28,12 @@ define(function(require, exports, module) {
 
 
   Transitionable.registerMethod('snap', SnapTransition);
-  // var transition = {
-  //     method: "snap",
-  //     period: 1000,
-  //     dampingRatio: .3,
-  //     velocity: 0
-  // };
 
   function GridView() {
     View.apply(this, arguments);
     this.views = {};
     this.cardMap = [];
+    this.surfaceMap = [];
     
     var rootModifier = new Modifier({
       size: []
@@ -92,28 +87,32 @@ define(function(require, exports, module) {
               }.bind(this, i), i* delay);
         }
   };
-
-  GridView.prototype.checkGameLogic = function(options){
-    
-      if(this.cardMap[0] === undefined){
-          this.cardMap[0] = options.type;
-      } else if(this.cardMap[1] === undefined) {
-        this.cardMap[1] = options.type;
+  GridView.prototype.checkGameLogic = function(surface){
+      this.surfaceMap.push(surface);
+      if(this.surfaceMap.length == 2){
         this.checkIfMatch();
-      } 
-  }
-
-
+      }
+  };
   GridView.prototype.checkIfMatch = function(){
-    if(this.cardMap[0] === this.cardMap[1]){
-      console.log('this is a match');
-      this.cardMap = [];
+    if(this.surfaceMap[0].properties.type === this.surfaceMap[1].properties.type){
+      this.surfaceMap[0].setProperties({backgroundColor: '#5cb85c'});
+      this.surfaceMap[0].setProperties({color: '#fff'});
+      this.surfaceMap[0].setProperties({borderColor: '#4cae4c'});
+      this.surfaceMap[1].setProperties({borderColor: '#4cae4c'});
+      this.surfaceMap[1].setProperties({backgroundColor: '#5cb85c'});
+      this.surfaceMap[1].setProperties({color: '#fff'});
+      this.surfaceMap = [];
     } else {
       console.log('try again');
-      this.cardMap = [];
-    
+      Timer.setTimeout( function(){
+          console.log(this.surfaceMap[0]);
+          this.surfaceMap[0].setProperties({color: '#444'});
+          this.surfaceMap[1].setProperties({color: '#444'});
+          this.surfaceMap = [];
+      }.bind(this), 500);
+      
     }
-  }
+  };
 
 
   function _createGrid(cards){
@@ -147,7 +146,8 @@ define(function(require, exports, module) {
             borderRadius: '3px',
             paddingTop: '15px',
             type: item,
-            index: index
+            index: index,
+            locked: false
           }
         });
 
@@ -155,9 +155,10 @@ define(function(require, exports, module) {
         this.gridItemModifiers.push(gridItemModifier);
 
         surface.on('click', function(){
+          console.log(this.properties.index)
           this.setProperties({color:'white'});
-          var options = {type: this.properties.type, index: this.properties.index}
-          self.cardTouchEventHandler.emit('touch card', options)
+          // var options = {type: this.properties.type, index: this.properties.index, locked:false}
+          self.cardTouchEventHandler.emit('touch card', this)
         });
 
         this.node.add(gridItemModifier).add(surface);
@@ -187,8 +188,8 @@ define(function(require, exports, module) {
   function _setEventHandling(){
       var self = this;
       this.cardTouchEventHandler = new EventHandler();
-      this.cardTouchEventHandler.on('touch card', function(options) {
-        this.checkGameLogic(options)
+      this.cardTouchEventHandler.on('touch card', function(surface) {
+        this.checkGameLogic(surface)
       }.bind(self));
   }
 
