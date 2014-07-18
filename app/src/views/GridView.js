@@ -9,6 +9,7 @@ define(function(require, exports, module) {
   var Transitionable = require('famous/transitions/Transitionable');
   var SnapTransition = require("famous/transitions/SnapTransition");
   var Easing = require('famous/transitions/Easing');
+  var EventHandler = require('famous/core/EventHandler');
 
 
   GridView.DEFAULT_OPTIONS = {
@@ -37,15 +38,16 @@ define(function(require, exports, module) {
   function GridView() {
     View.apply(this, arguments);
     this.views = {};
-
+    this.cardMap = [];
+    
     var rootModifier = new Modifier({
-      size: [undefined, undefined]
+      size: []
     });
 
     this.node = this.add(rootModifier);
     var cards = ['fa-bug','fa-coffee','fa-car','fa-glass', 'fa-anchor']
     _createGrid.call(this, cards);
-
+    _setEventHandling.call(this);
     _createShuffleButton.call(this);
   }
 
@@ -53,7 +55,6 @@ define(function(require, exports, module) {
   GridView.prototype = Object.create(View.prototype);
   GridView.prototype.constructor = GridView;
   GridView.prototype.animateGrid = function(){
-
       var transition = this.options.transition;
       var delay = 40;
       var stripOffset = 70;
@@ -92,13 +93,35 @@ define(function(require, exports, module) {
         }
   };
 
+  GridView.prototype.checkGameLogic = function(options){
+    
+      if(this.cardMap[0] === undefined){
+          this.cardMap[0] = options.type;
+      } else if(this.cardMap[1] === undefined) {
+        this.cardMap[1] = options.type;
+        this.checkIfMatch();
+      } 
+  }
+
+
+  GridView.prototype.checkIfMatch = function(){
+    if(this.cardMap[0] === this.cardMap[1]){
+      console.log('this is a match');
+      this.cardMap = [];
+    } else {
+      console.log('try again');
+      this.cardMap = [];
+    
+    }
+  }
+
 
   function _createGrid(cards){
-    
+    var self = this;
     var index = 1;
 
     this.gridItemModifiers = [];
-
+    this.surfaces = [];
     for (var i=0; i<this.options.columns; i++){
 
        for (var j=0; j < this.options.rows; j++){
@@ -107,8 +130,7 @@ define(function(require, exports, module) {
           transform: Transform.translate(-50,-50 ,0)
         });
 
-        this.gridItemModifiers.push(gridItemModifier);
-
+        
         var item = cards[Math.floor(Math.random()*cards.length)];
 
         var surface = new Surface({
@@ -119,12 +141,23 @@ define(function(require, exports, module) {
             backgroundColor: '#444',
             margin: 'auto',
             border: '1px solid white',
-            color: 'white',
+            color: '#444',
             textAlign: 'center',
             cursor: 'pointer',
             borderRadius: '3px',
-            paddingTop: '15px'
+            paddingTop: '15px',
+            type: item,
+            index: index
           }
+        });
+
+        this.surfaces.push(surface);
+        this.gridItemModifiers.push(gridItemModifier);
+
+        surface.on('click', function(){
+          this.setProperties({color:'white'});
+          var options = {type: this.properties.type, index: this.properties.index}
+          self.cardTouchEventHandler.emit('touch card', options)
         });
 
         this.node.add(gridItemModifier).add(surface);
@@ -145,11 +178,18 @@ define(function(require, exports, module) {
     });
 
     button.on('click', function() {
-
       this.animateGrid();
     }.bind(this));
 
     this.node.add(buttonMod).add(button);
+  }
+
+  function _setEventHandling(){
+      var self = this;
+      this.cardTouchEventHandler = new EventHandler();
+      this.cardTouchEventHandler.on('touch card', function(options) {
+        this.checkGameLogic(options)
+      }.bind(self));
   }
 
   function _shuffle(o){
