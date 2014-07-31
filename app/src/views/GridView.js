@@ -10,6 +10,12 @@ define(function(require, exports, module) {
   var SnapTransition = require("famous/transitions/SnapTransition");
   var Easing = require('famous/transitions/Easing');
   var EventHandler = require('famous/core/EventHandler');
+  var StateModifier = require('famous/modifiers/StateModifier');
+  var ModifierChain       = require("famous/modifiers/ModifierChain");
+  var Transform           = require("famous/core/Transform");
+
+  var Card        = require('views/Card');
+  var GameLogic        = require('views/GameLogic');
 
 
   GridView.DEFAULT_OPTIONS = {
@@ -87,38 +93,20 @@ define(function(require, exports, module) {
               }.bind(this, i), i* delay);
         }
   };
-  GridView.prototype.checkGameLogic = function(surface){
+  GridView.prototype.checkNumCardsOpen = function(surface){
+
       this.surfaceMap.push(surface);
+      console.log(this.surfaceMap)
       if(this.surfaceMap.length == 2){
-        this.checkIfMatch();
+        this.game.isMatch(this.surfaceMap);
       }
   };
-  GridView.prototype.checkIfMatch = function(){
-    if(this.surfaceMap[0].properties.type === this.surfaceMap[1].properties.type){
-      this.surfaceMap[0].setProperties({backgroundColor: '#5cb85c'});
-      this.surfaceMap[0].setProperties({color: '#fff'});
-      this.surfaceMap[0].setProperties({borderColor: '#4cae4c'});
-      this.surfaceMap[1].setProperties({borderColor: '#4cae4c'});
-      this.surfaceMap[1].setProperties({backgroundColor: '#5cb85c'});
-      this.surfaceMap[1].setProperties({color: '#fff'});
-      this.surfaceMap = [];
-    } else {
-      console.log('try again');
-      Timer.setTimeout( function(){
-          console.log(this.surfaceMap[0]);
-          this.surfaceMap[0].setProperties({color: '#444'});
-          this.surfaceMap[1].setProperties({color: '#444'});
-          this.surfaceMap = [];
-      }.bind(this), 500);
-      
-    }
-  };
-
 
   function _createGrid(cards){
+
     var self = this;
     var index = 1;
-
+    this.game = new GameLogic();
     this.gridItemModifiers = [];
     this.surfaces = [];
     for (var i=0; i<this.options.columns; i++){
@@ -137,7 +125,7 @@ define(function(require, exports, module) {
           // classes: [item],
           content: '<i  class="fa '+item+'"></i>',
           properties: {
-            backgroundColor: '#444',
+            backgroundColor: '#222',
             margin: 'auto',
             border: '1px solid white',
             color: '#444',
@@ -151,17 +139,21 @@ define(function(require, exports, module) {
           }
         });
 
+        surface.stateModifier = new StateModifier();
+
         this.surfaces.push(surface);
         this.gridItemModifiers.push(gridItemModifier);
 
         surface.on('click', function(){
-          console.log(this.properties.index)
+          var transition = {duration:1000,curve:Easing.inOutQuad};
+          // console.log(this.properties.index)
           this.setProperties({color:'white'});
+           this.stateModifier.setTransform( Transform.scale(1.2,1.2), transition);
           // var options = {type: this.properties.type, index: this.properties.index, locked:false}
-          self.cardTouchEventHandler.emit('touch card', this)
+          self.eventHandler.emit('touch card', this)
         });
 
-        this.node.add(gridItemModifier).add(surface);
+        this.node.add(surface.stateModifier).add(gridItemModifier).add(surface);
         index ++;
        }
     }
@@ -187,10 +179,26 @@ define(function(require, exports, module) {
 
   function _setEventHandling(){
       var self = this;
-      this.cardTouchEventHandler = new EventHandler();
-      this.cardTouchEventHandler.on('touch card', function(surface) {
-        this.checkGameLogic(surface)
+      this.eventHandler = new EventHandler();
+      this.eventHandler.on('touch card', function(surface) {
+        this.checkNumCardsOpen(surface);
+        this.set
       }.bind(self));
+
+      this.eventHandler.subscribe(this.game.gameLogicHandler);
+
+      this.eventHandler.on('match', function(){
+        this.surfaceMap = [];
+        console.log('surfaceMap array cleared, try again')
+      }.bind(this));
+
+      this.eventHandler.on('no match', function(){
+          Timer.setTimeout( function(){
+            this.surfaceMap[0].setProperties({color: '#444'});
+            this.surfaceMap[1].setProperties({color: '#444'});
+            this.surfaceMap = [];
+        }.bind(this), 500);
+      }.bind(this));
   }
 
   function _shuffle(o){
