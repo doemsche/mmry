@@ -14,6 +14,8 @@ define(function(require, exports, module) {
   var ModifierChain       = require("famous/modifiers/ModifierChain");
   var Transform           = require("famous/core/Transform");
 
+  var Guid        = require('lib/Guid');
+  
   var Card        = require('views/Card');
   var GameLogic        = require('views/GameLogic');
 
@@ -47,8 +49,8 @@ define(function(require, exports, module) {
 
     this.node = this.add(rootModifier);
     var cards = ['fa-bug','fa-coffee','fa-car','fa-glass', 'fa-anchor']
-    _createGrid.call(this, cards);
     _setEventHandling.call(this);
+    _createGrid.call(this, cards);
     _createShuffleButton.call(this);
   }
 
@@ -118,42 +120,45 @@ define(function(require, exports, module) {
         });
 
         
-        var item = cards[Math.floor(Math.random()*cards.length)];
+        // var item = cards[Math.floor(Math.random()*cards.length)];
+        var id = new Guid().id;
+        var card = new Card({id:id});
 
-        var surface = new Surface({
-          size: [50,50],
-          // classes: [item],
-          content: '<i  class="fa '+item+'"></i>',
-          properties: {
-            backgroundColor: '#222',
-            margin: 'auto',
-            border: '1px solid white',
-            color: '#444',
-            textAlign: 'center',
-            cursor: 'pointer',
-            borderRadius: '3px',
-            paddingTop: '15px',
-            type: item,
-            index: index,
-            locked: false
-          }
-        });
+        // var surface = new Surface({
+        //   size: [50,50],
+        //   // classes: [item],
+        //   content: '<i class="fa '+item+'"></i>',
+        //   properties: {
+        //     backgroundColor: '#222',
+        //     margin: 'auto',
+        //     border: '1px solid white',
+        //     color: '#444',
+        //     textAlign: 'center',
+        //     cursor: 'pointer',
+        //     borderRadius: '3px',
+        //     paddingTop: '15px',
+        //     type: item,
+        //     index: index,
+        //     locked: false
+        //   }
+        // });
 
-        surface.stateModifier = new StateModifier();
+        // surface.stateModifier = new StateModifier();
 
-        this.surfaces.push(surface);
+        // this.surfaces.push(surface);
         this.gridItemModifiers.push(gridItemModifier);
 
-        surface.on('click', function(){
-          var transition = {duration:1000,curve:Easing.inOutQuad};
-          // console.log(this.properties.index)
-          this.setProperties({color:'white'});
-           this.stateModifier.setTransform( Transform.scale(1.2,1.2), transition);
-          // var options = {type: this.properties.type, index: this.properties.index, locked:false}
-          self.eventHandler.emit('touch card', this)
-        });
-
-        this.node.add(surface.stateModifier).add(gridItemModifier).add(surface);
+        // surface.on('click', function(){
+        //   var transition = {duration:1000,curve:Easing.inOutQuad};
+        //   // console.log(this.properties.index)
+        //   this.setProperties({color:'white'});
+        //    this.stateModifier.setTransform( Transform.scale(1.2,1.2), transition);
+        //   // var options = {type: this.properties.type, index: this.properties.index, locked:false}
+        //   self.eventHandler.emit('touch card', this)
+        // });
+        this.eventHandler.subscribe(card.eventHandler);
+        // this.node.add(surface.stateModifier).add(gridItemModifier).add(surface);
+        this.node.add(gridItemModifier).add(card);
         index ++;
        }
     }
@@ -178,14 +183,13 @@ define(function(require, exports, module) {
   }
 
   function _setEventHandling(){
-      var self = this;
-      this.eventHandler = new EventHandler();
-      this.eventHandler.on('touch card', function(surface) {
-        this.checkNumCardsOpen(surface);
-        this.set
-      }.bind(self));
 
-      this.eventHandler.subscribe(this.game.gameLogicHandler);
+      this.eventHandler = new EventHandler();
+      this.eventHandler.on('touch card', function(card) {
+        console.log(card);
+      }.bind(this));
+
+      // this.eventHandler.subscribe(this.game.gameLogicHandler);
 
       this.eventHandler.on('match', function(){
         this.surfaceMap = [];
